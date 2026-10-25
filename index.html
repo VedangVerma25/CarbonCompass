@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CarbonCompass</title>
+<style>
+body { font-family: system-ui, sans-serif; max-width: 720px; margin: 0 auto; padding: 0 16px 24px; background: #eef3ec; color: #1e2b22; line-height: 1.5; }
+h1 { color: #1f5a36; margin-bottom: 0; }
+#live { position: sticky; top: 0; z-index: 5; background: #1f2a2e; color: #ffb020; font-family: ui-monospace, Consolas, monospace; padding: 10px 16px; margin: 0 -16px; display: flex; justify-content: space-between; font-size: 0.95rem; }
+#progWrap { background: #dfe9e2; height: 8px; border-radius: 4px; margin: 14px 0 4px; }
+#prog { height: 100%; width: 0; background: #1f5a36; border-radius: 4px; transition: width .4s; }
+#stepLabel { font-size: 0.85rem; color: #4a5d50; }
+
+/* Question cards, with a background image */
+fieldset { display: none; background: #fff; border: 0; border-radius: 12px; margin: 14px 0; padding: 14px 18px; box-shadow: 0 1px 4px rgba(30,43,34,.12); }
+fieldset.active { display: block; }
+
+legend { float: left; width: 100%; padding: 0; margin: 0 0 6px; font-weight: 700; font-size: 1.15rem; color: #1f5a36; }
+legend + * { clear: both; }
+label { display: block; margin: 10px 0 3px; font-size: .95rem; }
+input, select { width: 100%; max-width: 440px; padding: 12px; font-size: 1rem; border: 1.5px solid #c5d3c8; border-radius: 8px; box-sizing: border-box; }
+@supports (field-sizing: content) {
+  input:not([type=checkbox]), select {
+    field-sizing: content;
+    width: auto;
+    min-width: 140px;
+    max-width: 100%;
+  }
+}
+input[type=checkbox] { width: auto; }
+input:focus, select:focus, button:focus-visible { outline: 3px solid #ffb020; }
+.hint { font-size: .85rem; color: #4a5d50; }
+button { padding: 12px 24px; font-size: 1.05rem; font-weight: 600; background: #1f5a36; color: #fff; border: 0; border-radius: 10px; cursor: pointer; }
+button:hover { background: #2e6b3f; }
+button.ghost { background: #fff; color: #1f5a36; border: 1.5px solid #1f5a36; }
+#nav { display: flex; justify-content: space-between; }
+#result { display: none; }
+#result h2 { background: #1f2a2e; color: #ffb020; font-family: ui-monospace, Consolas, monospace; padding: 18px; border-radius: 12px; text-align: center; font-size: 1.5rem; }
+
+/* Result cards, with the same background image */
+.card { background: #fff; border-radius: 12px; padding: 14px 18px; margin: 14px 0; box-shadow: 0 1px 4px rgba(30,43,34,.12); }
+
+.donut { width: 210px; height: 210px; border-radius: 50%; margin: 6px auto 12px; position: relative; }
+.donut::after { content: attr(data-label); position: absolute; inset: 34px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #1f5a36; text-align: center; font-size: .95rem; }
+.dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 6px; }
+.bar { background: #dfe9e2; height: 12px; border-radius: 6px; margin-bottom: 8px; }
+.bar span { display: block; height: 100%; width: 0; border-radius: 6px; transition: width .8s ease; }
+@media (prefers-reduced-motion: reduce) { .bar span, #prog { transition: none; } }
+
+/* Welcome screen: fills the whole window */
+#welcome {
+  position: fixed; inset: 0; z-index: 20;
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+  text-align: center; padding: 24px; color: #fff;
+  background: linear-gradient(rgba(15,40,25,.45), rgba(15,40,25,.45)),
+              url('Images/Img1.jpg') center / cover no-repeat;
+}
+#welcome h1 { color: #fff; font-size: 2.4rem; }
+#start { background: #ffb020; color: #1e2b22; }
+
+body {
+  --veil: linear-gradient(rgba(238,243,236,.35), rgba(238,243,236,.35));
+  background-color: #eef3ec;
+  background-size: cover; background-position: center;
+  background-repeat: no-repeat; background-attachment: fixed;
+}
+body[data-step="0"] { background-image: var(--veil), url('Images/Img2.jpg'); }
+body[data-step="1"] { background-image: var(--veil), url('Images/Img3.jpg'); }
+body[data-step="2"] { background-image: var(--veil), url('Images/Img4.jpg'); }
+body[data-step="3"] { background-image: var(--veil), url('Images/Img5.jpg'); }
+body[data-step="4"] { background-image: var(--veil), url('Images/Img6.jpg'); }
+body[data-step="5"] { background-image: var(--veil), url('Images/Img7.jpg'); }
+body[data-step="6"] { background-image: var(--veil), url('Images/Img8.jpg'); }
+body[data-step="7"] { background-image: var(--veil), url('Images/Img9.jpg'); }
+body[data-step="8"] { background-image: var(--veil), url('Images/Img10.jpg'); }
+
+.hrow { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+button.small { padding: 6px 12px; font-size: .85rem; }
+
+/* ---------- Settings ---------- */
+body { --accent: #1f5a36; --accent-text: var(--accent); }
+h1, legend, .donut::after { color: var(--accent-text); }
+button { background: var(--accent); }
+button:not(.ghost):hover { background: var(--accent); filter: brightness(1.2); }
+button.ghost { color: var(--accent-text); border-color: var(--accent); }
+#prog { background: var(--accent); }
+#live { padding-left: 60px; }
+
+#gear { position: fixed; top: 10px; left: 10px; z-index: 30; width: 42px; height: 42px; padding: 0; border-radius: 50%; font-size: 1.2rem; background: #1f2a2e; color: #ffb020; box-shadow: 0 2px 6px rgba(0,0,0,.3); }
+#settings { position: fixed; top: 60px; left: 10px; z-index: 30; width: min(300px, calc(100vw - 20px)); box-sizing: border-box; padding: 14px 16px; border-radius: 12px; background: #fff; color: #1e2b22; box-shadow: 0 4px 16px rgba(0,0,0,.3); }
+#settings button { padding: 6px 12px; font-size: .85rem; }
+.opts { display: flex; gap: 8px; flex-wrap: wrap; }
+#settings .opts button.sel { background: var(--accent); color: #fff; }
+#settings .swatch { width: 30px; height: 30px; padding: 0; border-radius: 50%; border: 3px solid transparent; }
+#settings .swatch.sel { border-color: #ffb020; }
+
+body.nophotos { background-image: none !important; }
+body.calm *, body.calm *::after { transition: none !important; animation: none !important; }
+
+body[data-theme="dark"] { color-scheme: dark; --veil: linear-gradient(rgba(8,16,12,.6), rgba(8,16,12,.6)); --accent-text: color-mix(in srgb, var(--accent) 40%, #fff); background-color: #10181a; color: #e6efe8; }
+body[data-theme="dark"] fieldset, body[data-theme="dark"] .card, body[data-theme="dark"] .donut::after, body[data-theme="dark"] #settings { background: #1b2a26; color: #e6efe8; }
+body[data-theme="dark"] input, body[data-theme="dark"] select { background: #0f1a17; color: #e6efe8; border-color: #3a5248; }
+body[data-theme="dark"] .hint, body[data-theme="dark"] #stepLabel { color: #a9bdb1; }
+body[data-theme="dark"] #progWrap, body[data-theme="dark"] .bar { background: #2c3d37; }
+body[data-theme="dark"] button.ghost { background: #1b2a26; }
+
+</style>
+</head>
+<body>
+
+<button id="gear" aria-label="Settings" aria-expanded="false">⚙️</button>
+<div id="settings" role="dialog" aria-label="Settings" style="display:none">
+  <strong>Settings</strong>
+  <label>Theme</label>
+  <div class="opts" id="themeOpts">
+    <button class="ghost" data-theme="light">☀️ Light</button>
+    <button class="ghost" data-theme="dark">🌙 Dark</button>
+    <button class="ghost" data-theme="auto">Auto</button>
+  </div>
+  <label>Accent colour</label>
+  <div class="opts" id="accentOpts">
+    <button class="swatch" data-accent="#1f5a36" style="background:#1f5a36" aria-label="Green"></button>
+    <button class="swatch" data-accent="#1b6ca8" style="background:#1b6ca8" aria-label="Blue"></button>
+    <button class="swatch" data-accent="#c2571a" style="background:#c2571a" aria-label="Orange"></button>
+    <button class="swatch" data-accent="#6a3fa0" style="background:#6a3fa0" aria-label="Purple"></button>
+  </div>
+  <label>Text size</label>
+  <div class="opts" id="sizeOpts">
+    <button class="ghost" data-size="14">A−</button>
+    <button class="ghost" data-size="16">A</button>
+    <button class="ghost" data-size="19">A+</button>
+  </div>
+  <label><input type="checkbox" id="optPhotos"> Background photos</label>
+  <label><input type="checkbox" id="optMotion"> Animations</label>
+  <button class="ghost" id="resetSettings" style="margin-top:10px">Reset settings</button>
+</div>
+
+<div id="welcome">
+  <h1>Carbon Compass</h1>
+  <p>Find out your yearly CO₂ footprint in a few quick steps.</p>
+  <button id="start">Start calculator</button>
+  <button id="histBtn" class="ghost" style="margin-top:12px">View history</button>
+</div>
+
+<div id="live" style="display:none"><span>Your footprint so far</span><strong id="liveVal">0.00 t / year</strong></div>
+
+<div id="wizard" style="display:none">
+<div id="progWrap"><div id="prog"></div></div>
+<div id="stepLabel"></div>
+
+<fieldset>
+  <legend>🏠 About you</legend>
+  <label for="family">People in your household</label>
+  <input type="number" id="family" placeholder="How many people are in your house? e.g. 4" min="1" max="40">
+  <div id="houseBox">
+    <label for="house">What is your home size?</label>
+    <select id="house">
+      <option value="" selected disabled>Select your home size</option>
+      <option value="low">1-2 BHK</option>
+      <option value="medium">2-3 BHK</option>
+      <option value="high">Villa or multistorey home</option>
+    </select>
+  </div>
+</fieldset>
+
+<fieldset>
+  <legend>🚗 Private vehicle</legend>
+  <label for="vtype">Vehicle type</label>
+  <select id="vtype" onchange="fillSizes()">
+    <option value="none">I don't use one</option>
+    <option value="p2w">Petrol 2-wheeler</option>
+    <option value="pcar">Petrol car</option>
+    <option value="dcar">Diesel car</option>
+    <option value="ccar">CNG car</option>
+  </select>
+  <div id="vehicleExtra">
+    <label for="vsize">Size</label>
+    <select id="vsize"></select>
+    <label for="vkm">Distance per day (km)</label>
+    <input type="number" id="vkm" placeholder="e.g. 15" min="0">
+    <label for="vdays">Days per week you use it</label>
+    <input type="number" id="vdays" placeholder="0 to 7, e.g. 5" min="0" max="7">
+    <label for="vpeople">People usually in the vehicle (including you)</label>
+    <input type="number" id="vpeople" placeholder="e.g. 1" min="1">
+  </div>
+</fieldset>
+
+<fieldset>
+  <legend>🚇 Public transport</legend>
+  <label for="metrokm">Metro (km per day)</label>
+  <input type="number" id="metrokm" placeholder="Enter km per day, e.g. 10" min="0">
+  <label for="buskm">Bus (km per day)</label>
+  <input type="number" id="buskm" placeholder="Enter km per day, e.g. 8" min="0">
+  <div id="busExtra">
+    <label for="bustype">Type of bus</label>
+    <select id="bustype">
+      <option value="diesel">Diesel</option>
+      <option value="electric">Electric</option>
+      <option value="cng">CNG</option>
+    </select>
+  </div>
+  <div id="daysBox">
+    <label for="pdays">Days per week you use public transport</label>
+    <input type="number" id="pdays" placeholder="0 to 7, e.g. 5" min="0" max="7">
+  </div>
+</fieldset>
+
+<fieldset>
+  <legend>💡 Home electricity</legend>
+  <label for="bill">Units (kWh) on your monthly electricity bill</label>
+  <input type="number" id="bill" placeholder="Leave empty if you don't know" min="0">
+</fieldset>
+
+<fieldset>
+  <legend>❄️ Air conditioning</legend>
+  <label for="acs">Number of ACs</label>
+  <input type="number" id="acs" placeholder="e.g. 2" min="0">
+  <div id="acExtra">
+    <label for="actons">Size</label>
+    <select id="actons">
+      <option value="0.8">1 ton</option>
+      <option value="1.1" selected>1.5 ton</option>
+      <option value="1.35">2 ton</option>
+    </select>
+    <label for="achours">Hours per day (on days you use it)</label>
+    <input type="number" id="achours" placeholder="e.g. 8" min="0" max="24">
+    <label for="acmonths">Months per year you use it</label>
+    <input type="number" id="acmonths" placeholder="e.g. 6" min="0" max="12">
+  </div>
+  <label><input type="checkbox" id="acincl"> The units I entered from my bill already include AC</label>
+</fieldset>
+
+<fieldset>
+  <legend>🍳 Cooking</legend>
+  <label for="fuel">Cooking fuel</label>
+  <select id="fuel">
+    <option value="lpg">LPG cylinder</option>
+    <option value="png">PNG (piped gas)</option>
+    <option value="other">Electric / induction / other</option>
+    <option value="none">I do not cook at home</option>
+  </select>
+  <div id="lpgBox">
+    <label for="cyl">LPG: 14.2 kg cylinders used per year</label>
+    <input type="number" id="cyl" placeholder="e.g. 8" min="0" step="0.5">
+  </div>
+  <div id="pngBox">
+    <label for="scm">PNG: SCM used per month (from your bill)</label>
+    <input type="number" id="scm" placeholder="e.g. 15" min="0">
+  </div>
+</fieldset>
+
+<fieldset>
+  <legend>🥗 Diet</legend>
+  <label for="diet">Your diet</label>
+  <select id="diet">
+    <option value="veg">Vegetarian or vegan</option>
+    <option value="meat">Non-vegetarian</option>
+  </select>
+  <div id="meatBox">
+    <label for="meatmeals">Non-vegetarian: meals with meat per week (out of 21)</label>
+    <input type="number" id="meatmeals" placeholder="0 to 21, e.g. 14" min="0" max="21">
+    <p id="meatNote" class="hint" style="display:none">If you are eating zero NON-Vegetarian meals then you are a Vegetarian.</p>
+  </div>
+</fieldset>
+
+<fieldset>
+  <legend>✈️ Flights</legend>
+  <label for="dtrips">Domestic return trips per year</label>
+  <input type="number" id="dtrips" placeholder="e.g. 2" min="0">
+  <label for="dkm">Average one-way distance (km)</label>
+  <input type="number" id="dkm" placeholder="e.g. 1200" min="0">
+  <label for="itrips">International return trips per year</label>
+  <input type="number" id="itrips" placeholder="e.g. 1" min="0">
+  <label for="ikm">Average one-way distance (km)</label>
+  <input type="number" id="ikm" placeholder="e.g. 5000" min="0">
+</fieldset>
+
+<fieldset>
+  <legend>🚆 Railway travel</legend>
+  <label for="subkm">Suburban / local train (km per day)</label>
+  <input type="number" id="subkm" placeholder="e.g. 20" min="0">
+  <div id="subDaysBox">
+    <label for="subdays">Days per week you use it</label>
+    <input type="number" id="subdays" placeholder="0 to 7, e.g. 5" min="0" max="7">
+  </div>
+  <label for="ltrips">Long-distance return trips per year</label>
+  <input type="number" id="ltrips" placeholder="e.g. 2" min="0">
+  <label for="lkm">Average one-way distance (km)</label>
+  <input type="number" id="lkm" placeholder="e.g. 800" min="0">
+</fieldset>
+
+<div id="nav">
+  <button id="back" class="ghost">← Back</button>
+  <button id="next">Next →</button>
+</div>
+</div>
+
+<div id="result" aria-live="polite"></div>
+<div id="history" style="display:none"></div>
+
+<script>
+// ---- Editable numbers: change these when you find better sources ----
+const C = {
+  grid: 0.71,            // kg CO2 per kWh (India grid, check latest CEA figure)
+  houseKwh: { low: 170, medium: 270, high: 450 },  // typical monthly kWh, rounded from CLASP/RESIDE 2018-19, Jaipur study, Prayas
+  dieselBus: 0.03,      // kg per passenger-km
+  ebusKwhPerKm: 1.84, ebusPassengers: 50,
+  metroKwhPerTrainKm: 21.4, metroPassengers: 1400,
+  lpgCylinderKg: 14.2, lpgFactor: 3.16,
+  pngPerScm: 2.05,   // kg CO2 per SCM of PNG
+  cngCo2PerKg: 2.75,       // kg CO2 per kg of CNG
+  cngHatchKmPerKg: 26,     // real-world km per kg, hatchback
+  cngSedanKmPerKg: 24,     // real-world km per kg, sedan / compact SUV
+  cngBusKmPerKg: 2.25,     // DTC CNG buses: about 2.5 non-AC, about 2.0 AC
+  dietVeg: 2.9, dietMeat: 4.2,      // kg CO2e per day
+  flightDomestic: 0.16, flightIntl: 0.12,  // kg per passenger-km
+  trainSuburban: 0.007976, trainLong: 0.007837,  // kg per passenger-km (Indian Railways average)
+  indiaAvgTonnes: 2         // India Average CO2 Per Person
+};
+
+const VEHICLES = {
+  none: {},
+  p2w: { "Scooter, up to 110cc": 0.06, "Commuter, 110-150cc": 0.06, "150-250cc": 0.8, "250cc and above": 0.11 },
+  pcar: { "Hatchback": 0.13, "Sedan or compact SUV": 0.18, "MUV": 0.23, "Large SUV": 0.27 },
+  dcar: { "Hatchback or compact": 0.14, "Sedan or compact SUV": 0.16, "Large SUV or MUV": 0.19 },
+  ccar: { "Hatchback": C.cngCo2PerKg / C.cngHatchKmPerKg, "Sedan or compact SUV": C.cngCo2PerKg / C.cngSedanKmPerKg }
+};
+
+const TIPS = {
+  "Private vehicle": "Carpool, combine trips, or switch some days to metro or bus.",
+  "Public transport": "Your public transport is already low. Walking or cycling short trips would cut it further.",
+  "Home electricity": "Switch to 5-star appliances and LED lights, and consider rooftop solar.",
+  "Air conditioning": "Set your AC to 24°C or higher and use a fan alongside it.",
+  "Cooking": "Use pressure cookers and lids, and consider induction cooking.",
+  "Diet": "Replacing a few meat meals a week with vegetarian ones lowers this quickly.",
+  "Flights": "Fly less often, choose direct flights, and use trains for shorter routes.",
+  "Railway travel": "Trains are already one of the lowest-carbon ways to travel. Keep choosing them over cars and flights."
+};
+
+const COLORS = ["#1f5a36", "#4f9d69", "#ffb020", "#3b8ea5", "#c8553d", "#8a6fb0", "#e08fb0", "#6b7a72"];
+
+const $ = id => document.getElementById(id);
+const num = id => Math.max(0, parseFloat($(id).value) || 0);
+
+function updateMaxPeople() {
+  const type = $("vtype").value;
+  const size = $("vsize").selectedOptions[0]?.text || "";
+  let max = 5;                                   // hatchback, sedan, compact SUV
+  if (type === "p2w") max = 2;                   // 2-wheelers
+  else if (/Large SUV/.test(size)) max = 8;      // large SUV
+  else if (/MUV/.test(size)) max = 7;            // mid SUV or MUV
+  $("vpeople").max = max;
+  $("vpeople").placeholder = `1 to ${max}`;
+  if (num("vpeople") > max) $("vpeople").value = max;   // fix a value that is now too high
+}
+
+function fillSizes() {
+  const sizes = VEHICLES[$("vtype").value];
+  $("vsize").innerHTML = Object.keys(sizes).map(k => `<option value="${sizes[k]}">${k}</option>`).join("");
+  $("vsize").disabled = Object.keys(sizes).length === 0;
+  updateMaxPeople();
+}
+
+function compute() {
+  const G = C.grid;
+  const people = Math.max(1, num("family"));
+
+  // Private vehicle (per person): km/day x days x 52 x factor / people sharing
+  const vFactor = $("vtype").value === "none" ? 0 : parseFloat($("vsize").value) || 0;
+  const vehicle = num("vkm") * num("vdays") * 52 * vFactor / Math.max(1, num("vpeople"));
+
+  // Public transport (per person)
+  const metroFactor = C.metroKwhPerTrainKm * G / C.metroPassengers;
+  const ebusFactor = C.ebusKwhPerKm * G / C.ebusPassengers;
+  const cngBusFactor = C.cngCo2PerKg / C.cngBusKmPerKg / C.ebusPassengers;
+  const busType = $("bustype").value;
+  const busFactor = busType === "electric" ? ebusFactor : busType === "cng" ? cngBusFactor : C.dieselBus;
+  const publicT = num("pdays") * 52 * (num("metrokm") * metroFactor + num("buskm") * busFactor);
+
+  // Home electricity (household): bill units, or house-size estimate
+  const billEntered = $("bill").value.trim() !== "";
+  const monthlyKwh = billEntered ? num("bill") : (C.houseKwh[$("house").value] || 0);
+  const electricity = monthlyKwh * 12 * G / people;
+
+  // AC (household): skipped if the bill already includes it
+  const acIncluded = $("acincl").checked;
+  const ac = acIncluded ? 0 : num("acs") * parseFloat($("actons").value) * num("achours") * num("acmonths") * 30 * G / people;
+
+  // Cooking (household)
+  let cooking = 0;
+  if ($("fuel").value === "lpg") cooking = num("cyl") * C.lpgCylinderKg * C.lpgFactor;
+  if ($("fuel").value === "png") cooking = num("scm") * 12 * C.pngPerScm;
+  cooking /= people;
+
+  // Diet (per person): blend between veg and meat by meat meals per wee
+  const share = $("diet").value === "meat" ? Math.min(num("meatmeals") / 21, 1) : 0;
+  const diet = (C.dietVeg + (C.dietMeat - C.dietVeg) * share) * 365;
+
+  // Flights (per person): return trips = 2 x one-way distance
+  const flights = num("dtrips") * 2 * num("dkm") * C.flightDomestic + num("itrips") * 2 * num("ikm") * C.flightIntl;
+
+  // Railway travel
+  const train = num("subkm") * num("subdays") * 52 * C.trainSuburban + num("ltrips") * 2 * num("lkm") * C.trainLong;
+
+  const parts = [
+    ["Private vehicle", vehicle], ["Public transport", publicT], ["Home electricity", electricity],
+    ["Air conditioning", ac], ["Cooking", cooking], ["Diet", diet], ["Flights", flights], ["Railway travel", train]
+  ];
+  const total = parts.reduce((s, p) => s + p[1], 0);
+  return { parts, total, share, acIncluded };
+}
+
+function countUp(el, to) {
+  const t0 = performance.now();
+  (function f(t) {
+    const p = Math.min((t - t0) / 800, 1);
+    el.textContent = (to * p).toFixed(2) + " tonnes CO₂ per year";
+    if (p < 1) requestAnimationFrame(f);
+  })(t0);
+}
+
+function getWhatIf(parts, acIncluded) {
+  const get = n => parts.find(p => p[0] === n)[1];
+  const opts = [];
+
+  const vehicle = get("Private vehicle"), vd = Math.round(num("vdays"));
+  if (vehicle > 0 && vd > 0)
+    opts.push({ label: "Use your vehicle fewer days a week", unit: "days", max: vd, save: v => vehicle * v / vd });
+
+  const meat = Math.round(num("meatmeals"));
+  if ($("diet").value === "meat" && meat > 0)
+    opts.push({ label: "Eat fewer non-veg meals a week", unit: "meals", max: meat, save: v => (C.dietMeat - C.dietVeg) * 365 * v / 21 });
+
+  const ac = get("Air conditioning"), ah = Math.round(num("achours"));
+  if (!acIncluded && ac > 0 && ah > 0)
+    opts.push({ label: "Run your AC fewer hours a day", unit: "hours", max: ah, save: v => ac * v / ah });
+
+  const flights = get("Flights"), ft = Math.round(num("dtrips") + num("itrips"));
+  if (flights > 0 && ft > 0)
+    opts.push({ label: "Take fewer flight trips a year", unit: "trips", max: ft, save: v => flights * v / ft });
+
+  return opts;
+}
+
+let wiOpts = [], wiTotal = 0;
+
+$("result").addEventListener("input", e => {
+  if (!/^wi\d+$/.test(e.target.id)) return;   // only the what-if sliders
+  let saved = 0;
+  wiOpts.forEach((o, i) => {
+    const v = +$("wi" + i).value;
+    $("wv" + i).textContent = v;
+    saved += o.save(v);
+  });
+  saved = Math.min(saved, wiTotal);
+  $("wiOut").innerHTML = saved > 0
+    ? `You would save <strong>${Math.round(saved)} kg</strong> a year. New footprint: <strong>${((wiTotal - saved) / 1000).toFixed(2)} tonnes</strong>.`
+    : "Move a slider to see how much you could save.";
+});
+
+const HKEY = "carbonHistory";
+const loadHistory = () => { try { return JSON.parse(localStorage.getItem(HKEY)) || []; } catch { return []; } };
+const saveHistory = list => { try { localStorage.setItem(HKEY, JSON.stringify(list)); } catch {} };
+
+function saveEntry(tonnes, top) {
+  const list = loadHistory();
+  list.unshift({ t: Date.now(), tonnes: +tonnes.toFixed(2), top: [top[0], Math.round(top[1])] });
+  saveHistory(list.slice(0, 50));   // keep the latest 50
+}
+
+let histFrom = "welcome";
+function showHistory(from) {
+  histFrom = from;
+  const list = loadHistory();
+  let html = `<h2 style="color:#1f5a36">📜 Your history</h2>`;
+  if (!list.length) html += `<div class="card">No saved results yet. Calculate your footprint and it will appear here.</div>`;
+  list.forEach((e, i) => {
+    const when = new Date(e.t).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
+    const prev = list[i + 1];
+    let change = "";
+    if (prev) {
+      const d = e.tonnes - prev.tonnes;
+      change = d === 0 ? " (same as before)" : ` (${d < 0 ? "▼" : "▲"} ${Math.abs(d).toFixed(2)} t vs previous)`;
+    }
+    html += `<div class="card"><div class="hrow"><strong>${when}</strong>
+      <button class="ghost small" data-del="${e.t}">Delete</button></div>
+      <div style="font-size:1.3rem;font-weight:700;color:#1f5a36">${e.tonnes.toFixed(2)} tonnes${change}</div>
+      <div class="hint">Biggest source: ${e.top[0]} (${e.top[1]} kg)</div></div>`;
+  });
+  html += `<div class="hrow"><button id="hback" class="ghost">← Back</button>
+    ${list.length ? `<button id="hclear" class="ghost">Clear all</button>` : ""}</div>`;
+  $("history").innerHTML = html;
+  $("welcome").style.display = "none";
+  $("result").style.display = "none";
+  $("history").style.display = "block";
+  window.scrollTo(0, 0);
+}
+
+function showResult() {
+  const { parts, total, share, acIncluded } = compute();
+  const tonnes = total / 1000;
+  const opts = getWhatIf(parts, acIncluded);
+  wiOpts = opts; wiTotal = total;
+  const shown = parts.map((p, i) => ({ name: p[0], kg: p[1], color: COLORS[i] }))
+                     .filter(p => !(p.name === "Air conditioning" && acIncluded));
+
+  // donut chart from conic-gradient
+  let acc = 0;
+  const stops = shown.filter(p => p.kg > 0).map(p => {
+    const from = acc; acc += p.kg / total * 100;
+    return `${p.color} ${from}% ${acc}%`;
+  }).join(", ");
+  const donutBg = total > 0 ? `conic-gradient(${stops})` : "#dfe9e2";
+
+  const diff = Math.round((tonnes / C.indiaAvgTonnes - 1) * 100);
+  const compare = diff > 0 ? `${diff}% above` : diff < 0 ? `${-diff}% below` : "right at";
+
+  let html = `<h2 id="big">0.00 tonnes CO₂ per year</h2>
+    <div class="card"><p>About ${(total / 365).toFixed(1)} kg a day. That is ${compare} India's average of roughly ${C.indiaAvgTonnes} tonnes per person a year.</p>
+    <div class="donut" style="background:${donutBg}" data-label="${tonnes.toFixed(2)} t"></div>`;
+  shown.forEach(p => {
+    const pct = total > 0 ? p.kg / total * 100 : 0;
+    html += `<div><span class="dot" style="background:${p.color}"></span>${p.name}: ${Math.round(p.kg)} kg (${pct.toFixed(0)}%)</div>
+      <div class="bar"><span data-w="${pct}" style="background:${p.color}"></span></div>`;
+  });
+  html += `</div>`;
+
+  const candidates = parts.filter(p => !(p[0] === "Diet" && share === 0));
+  const top = candidates.reduce((a, b) => b[1] > a[1] ? b : a);
+  saveEntry(tonnes, top);
+  if (tonnes <= C.indiaAvgTonnes) {
+    html += `<div class="card"><strong>Thank you for helping the planet!</strong> Your footprint is at or below 2 tonnes a year, which is great. Keep it up and inspire the people around you.</div>`;
+  } else if (total > 0) {
+    html += `<div class="card"><strong>Biggest source: ${top[0]}.</strong> ${TIPS[top[0]]}</div>`;
+  }
+  if (opts.length) {
+  html += `<div class="card"><strong>What if…?</strong>` +
+    opts.map((o, i) => `<label for="wi${i}">${o.label}: <b id="wv${i}">0</b> ${o.unit}</label>
+      <input type="range" id="wi${i}" min="0" max="${o.max}" value="0" step="1" style="max-width:100%">`).join("") +
+    `<p id="wiOut">Move a slider to see how much you could save.</p></div>`;
+} 
+  html += `<div class="hrow"><button id="edit" class="ghost">← Change my answers</button>
+  <button id="histBtn2" class="ghost">📜 View history</button></div>`;
+
+  $("result").innerHTML = html;
+  $("wizard").style.display = "none";
+  $("result").style.display = "block";
+  window.scrollTo(0, 0);
+  countUp($("big"), tonnes);
+  requestAnimationFrame(() => document.querySelectorAll(".bar span").forEach(s => s.style.width = s.dataset.w + "%"));
+  $("edit").onclick = () => { $("result").style.display = "none"; $("wizard").style.display = "block"; };
+  $("histBtn2").onclick = () => showHistory("result");
+}
+
+function show(id, visible) {
+  const el = $(id);
+  if (el) el.style.display = visible ? "" : "none";
+}
+
+function updateForm() {
+  show("vehicleExtra", $("vtype").value !== "none");
+  show("busExtra", num("buskm") > 0);
+  show("daysBox", num("metrokm") > 0 || num("buskm") > 0);
+  show("acExtra", num("acs") > 0);
+  show("lpgBox", $("fuel").value === "lpg");
+  show("pngBox", $("fuel").value === "png");
+  show("houseBox", $("bill").value.trim() === "");
+  show("meatBox", $("diet").value === "meat");
+  show("meatNote", $("diet").value === "meat" && $("meatmeals").value.trim() !== "" && num("meatmeals") === 0);
+  show("subDaysBox", num("subkm") > 0);
+  $("liveVal").textContent = (compute().total / 1000).toFixed(2) + " t / year";
+}
+
+// ---- Step-by-step cards ----
+const steps = [...document.querySelectorAll("#wizard fieldset")];
+let cur = 0;
+function go(n) {
+  document.body.dataset.step = Math.max(0, Math.min(n, steps.length - 1));
+  cur = Math.max(0, Math.min(n, steps.length - 1));
+  steps.forEach((s, i) => s.classList.toggle("active", i === cur));
+  $("prog").style.width = ((cur + 1) / steps.length * 100) + "%";
+  $("stepLabel").textContent = `Step ${cur + 1} of ${steps.length}`;
+  $("back").style.visibility = cur ? "visible" : "hidden";
+  $("next").textContent = cur === steps.length - 1 ? "See my footprint" : "Next →";
+}
+$("next").onclick = () => cur === steps.length - 1 ? showResult() : go(cur + 1);
+$("back").onclick = () => go(cur - 1);
+
+document.addEventListener("input", e => {
+  const el = e.target;
+  if (el.type === "number" && el.value !== "") {
+    const max = parseFloat(el.max), min = parseFloat(el.min);
+    if (!isNaN(max) && parseFloat(el.value) > max) el.value = max;
+    if (!isNaN(min) && parseFloat(el.value) < min) el.value = min;
+  }
+});
+document.addEventListener("input", updateForm);
+document.addEventListener("change", updateForm);
+
+$("start").onclick = () => {
+  $("welcome").style.display = "none";
+  $("live").style.display = "flex";
+  $("wizard").style.display = "block";
+};
+
+$("vsize").addEventListener("change", updateMaxPeople);
+
+$("histBtn").onclick = () => showHistory("welcome");
+
+$("history").addEventListener("click", e => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  if (b.dataset.del) {
+    saveHistory(loadHistory().filter(x => String(x.t) !== b.dataset.del));
+    showHistory(histFrom);
+  } else if (b.id === "hclear") {
+    if (confirm("Delete all saved results?")) { saveHistory([]); showHistory(histFrom); }
+  } else if (b.id === "hback") {
+    $("history").style.display = "none";
+    $(histFrom).style.display = histFrom === "welcome" ? "flex" : "block";
+  }
+});
+
+// ---- Settings ----
+const SKEY = "carbonSettings";
+const DEFAULTS = { theme: "light", accent: "#1f5a36", size: "16", photos: true, motion: true };
+let S = { ...DEFAULTS };
+try { S = { ...DEFAULTS, ...(JSON.parse(localStorage.getItem(SKEY)) || {}) }; } catch {}
+
+function applySettings() {
+  const dark = S.theme === "dark" || (S.theme === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
+  document.body.dataset.theme = dark ? "dark" : "light";
+  document.body.style.setProperty("--accent", S.accent);
+  document.documentElement.style.fontSize = S.size + "px";
+  document.body.classList.toggle("nophotos", !S.photos);
+  document.body.classList.toggle("calm", !S.motion);
+  document.querySelectorAll("#themeOpts button").forEach(b => b.classList.toggle("sel", b.dataset.theme === S.theme));
+  document.querySelectorAll("#accentOpts button").forEach(b => b.classList.toggle("sel", b.dataset.accent === S.accent));
+  document.querySelectorAll("#sizeOpts button").forEach(b => b.classList.toggle("sel", b.dataset.size === S.size));
+  $("optPhotos").checked = S.photos;
+  $("optMotion").checked = S.motion;
+  try { localStorage.setItem(SKEY, JSON.stringify(S)); } catch {}
+}
+
+function toggleSettings(open) {
+  $("settings").style.display = open ? "block" : "none";
+  $("gear").setAttribute("aria-expanded", open);
+}
+
+$("gear").onclick = () => toggleSettings($("settings").style.display === "none");
+document.addEventListener("keydown", e => { if (e.key === "Escape") toggleSettings(false); });
+document.addEventListener("click", e => {
+  if (!e.target.closest("#settings") && !e.target.closest("#gear")) toggleSettings(false);
+});
+
+$("settings").addEventListener("click", e => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  if (b.dataset.theme) S.theme = b.dataset.theme;
+  if (b.dataset.accent) S.accent = b.dataset.accent;
+  if (b.dataset.size) S.size = b.dataset.size;
+  if (b.id === "resetSettings") S = { ...DEFAULTS };
+  applySettings();
+});
+$("optPhotos").onchange = e => { S.photos = e.target.checked; applySettings(); };
+$("optMotion").onchange = e => { S.motion = e.target.checked; applySettings(); };
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (S.theme === "auto") applySettings(); });
+
+applySettings();
+
+fillSizes();
+updateForm();
+go(0);
+</script>
+</body>
+</html>
