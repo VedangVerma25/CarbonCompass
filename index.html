@@ -159,7 +159,7 @@ body[data-theme="dark"] button.ghost { background: #1b2a26; }
     <select id="house">
       <option value="" selected disabled>Select your home size</option>
       <option value="low">1-2 BHK</option>
-      <option value="medium">2-3 BHK</option>
+      <option value="medium">3 BHK</option>
       <option value="high">Villa or multistorey home</option>
     </select>
   </div>
@@ -322,7 +322,7 @@ const C = {
 
 const VEHICLES = {
   none: {},
-  p2w: { "Scooter, up to 110cc": 0.06, "Commuter, 110-150cc": 0.06, "150-250cc": 0.8, "250cc and above": 0.11 },
+  p2w: { "Upto 110cc": 0.06, "111-150cc": 0.06, "151-250cc": 0.8, "250cc and above": 0.11 },
   pcar: { "Hatchback": 0.13, "Sedan or compact SUV": 0.18, "MUV": 0.23, "Large SUV": 0.27 },
   dcar: { "Hatchback or compact": 0.14, "Sedan or compact SUV": 0.16, "Large SUV or MUV": 0.19 },
   ccar: { "Hatchback": C.cngCo2PerKg / C.cngHatchKmPerKg, "Sedan or compact SUV": C.cngCo2PerKg / C.cngSedanKmPerKg }
