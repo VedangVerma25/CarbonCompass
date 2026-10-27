@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CarbonCompass</title>
+<link rel="icon" href="Images/logo.png">
 <style>
 body { font-family: system-ui, sans-serif; max-width: 720px; margin: 0 auto; padding: 0 16px 24px; background: #eef3ec; color: #1e2b22; line-height: 1.5; }
 h1 { color: #1f5a36; margin-bottom: 0; }
@@ -234,7 +235,7 @@ body[data-theme="dark"] button.ghost { background: #1b2a26; }
 
 <fieldset>
   <legend>🍳 Cooking</legend>
-  <label for="fuel">Cooking fuel</label>
+  <label for="fuel">Cooking fuel, Select from the dropdown menu</label>
   <select id="fuel">
     <option value="lpg">LPG cylinder</option>
     <option value="png">PNG (piped gas)</option>
@@ -274,7 +275,7 @@ body[data-theme="dark"] button.ghost { background: #1b2a26; }
   <label for="itrips">International return trips per year</label>
   <input type="number" id="itrips" placeholder="e.g. 1" min="0">
   <label for="ikm">Average one-way distance (km)</label>
-  <input type="number" id="ikm" placeholder="e.g. 5000" min="0">
+  <input type="number" id="ikm" placeholder="e.g. 5000" min="0" max="15349">
 </fieldset>
 
 <fieldset>
@@ -322,7 +323,7 @@ const C = {
 
 const VEHICLES = {
   none: {},
-  p2w: { "Upto 110cc": 0.06, "111-150cc": 0.06, "151-250cc": 0.8, "250cc and above": 0.11 },
+  p2w: { "Upto 110cc": 0.06, "111-150cc": 0.06, "151-250cc": 0.8, "251cc and above": 0.11 },
   pcar: { "Hatchback": 0.13, "Sedan or compact SUV": 0.18, "MUV": 0.23, "Large SUV": 0.27 },
   dcar: { "Hatchback or compact": 0.14, "Sedan or compact SUV": 0.16, "Large SUV or MUV": 0.19 },
   ccar: { "Hatchback": C.cngCo2PerKg / C.cngHatchKmPerKg, "Sedan or compact SUV": C.cngCo2PerKg / C.cngSedanKmPerKg }
@@ -335,7 +336,7 @@ const TIPS = {
   "Air conditioning": "Set your AC to 24°C or higher and use a fan alongside it.",
   "Cooking": "Use pressure cookers and lids, and consider induction cooking.",
   "Diet": "Replacing a few meat meals a week with vegetarian ones lowers this quickly.",
-  "Flights": "Fly less often, choose direct flights, and use trains for shorter routes.",
+  "Flights": "Fly less often, prefer direct flights, and use trains for shorter routes.",
   "Railway travel": "Trains are already one of the lowest-carbon ways to travel. Keep choosing them over cars and flights."
 };
 
