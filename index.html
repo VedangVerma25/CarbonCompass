@@ -107,6 +107,9 @@ body[data-theme="dark"] .hint, body[data-theme="dark"] #stepLabel { color: #a9bd
 body[data-theme="dark"] #progWrap, body[data-theme="dark"] .bar { background: #2c3d37; }
 body[data-theme="dark"] button.ghost { background: #1b2a26; }
 
+.donut.pie::after { display: none; }
+.plabel { position: absolute; transform: translate(-50%, -50%); color: #fff; font-weight: 700; font-size: .8rem; text-shadow: 0 1px 3px rgba(0,0,0,.7); pointer-events: none; }
+
 </style>
 </head>
 <body>
@@ -170,11 +173,12 @@ body[data-theme="dark"] button.ghost { background: #1b2a26; }
   <legend>🚗 Private vehicle</legend>
   <label for="vtype">Vehicle type</label>
   <select id="vtype" onchange="fillSizes()">
-    <option value="none">I don't use one</option>
+    <option value="" selected disabled>Select vehicle type</option>
     <option value="p2w">Petrol 2-wheeler</option>
     <option value="pcar">Petrol car</option>
     <option value="dcar">Diesel car</option>
     <option value="ccar">CNG car</option>
+    <option value="none">I don't use one</option>
   </select>
   <div id="vehicleExtra">
     <label for="vsize">Size</label>
@@ -237,6 +241,7 @@ body[data-theme="dark"] button.ghost { background: #1b2a26; }
   <legend>🍳 Cooking</legend>
   <label for="fuel">Cooking fuel, Select from the dropdown menu</label>
   <select id="fuel">
+    <option value="" selected disabled>Select cooking fuel</option>
     <option value="lpg">LPG cylinder</option>
     <option value="png">PNG (piped gas)</option>
     <option value="other">Electric / induction / other</option>
@@ -358,7 +363,7 @@ function updateMaxPeople() {
 }
 
 function fillSizes() {
-  const sizes = VEHICLES[$("vtype").value];
+  const sizes = VEHICLES[$("vtype").value] || {};
   $("vsize").innerHTML = Object.keys(sizes).map(k => `<option value="${sizes[k]}">${k}</option>`).join("");
   $("vsize").disabled = Object.keys(sizes).length === 0;
   updateMaxPeople();
@@ -514,13 +519,22 @@ function showResult() {
     return `${p.color} ${from}% ${acc}%`;
   }).join(", ");
   const donutBg = total > 0 ? `conic-gradient(${stops})` : "#dfe9e2";
+  let a0 = 0;
+const labels = total > 0 ? shown.filter(p => p.kg > 0).map(p => {
+  const pc = p.kg / total * 100, mid = (a0 + pc / 2) / 100 * 2 * Math.PI;
+  a0 += pc;
+  if (pc < 6) return "";   // slice too small for a label
+  const x = 50 + 40 * Math.sin(mid), y = 50 - 40 * Math.cos(mid);
+  return `<span class="plabel" style="left:${x}%;top:${y}%">${pc.toFixed(0)}%</span>`;
+}).join("") : "";
 
   const diff = Math.round((tonnes / C.indiaAvgTonnes - 1) * 100);
   const compare = diff > 0 ? `${diff}% above` : diff < 0 ? `${-diff}% below` : "right at";
 
   let html = `<h2 id="big">0.00 tonnes CO₂ per year</h2>
     <div class="card"><p>About ${(total / 365).toFixed(1)} kg a day. That is ${compare} India's average of roughly ${C.indiaAvgTonnes} tonnes per person a year.</p>
-    <div class="donut" style="background:${donutBg}" data-label="${tonnes.toFixed(2)} t"></div>`;
+    <button class="ghost small" id="chartToggle">🍩 Switch to donut chart</button>
+    <div class="donut pie" style="background:${donutBg}" data-label="${tonnes.toFixed(2)} t">${labels}</div>`;
   shown.forEach(p => {
     const pct = total > 0 ? p.kg / total * 100 : 0;
     html += `<div><span class="dot" style="background:${p.color}"></span>${p.name}: ${Math.round(p.kg)} kg (${pct.toFixed(0)}%)</div>
@@ -561,7 +575,7 @@ function show(id, visible) {
 }
 
 function updateForm() {
-  show("vehicleExtra", $("vtype").value !== "none");
+  show("vehicleExtra", ["p2w", "pcar", "dcar", "ccar"].includes($("vtype").value));
   show("busExtra", num("buskm") > 0);
   show("daysBox", num("metrokm") > 0 || num("buskm") > 0);
   show("acExtra", num("acs") > 0);
@@ -668,6 +682,13 @@ $("settings").addEventListener("click", e => {
 $("optPhotos").onchange = e => { S.photos = e.target.checked; applySettings(); };
 $("optMotion").onchange = e => { S.motion = e.target.checked; applySettings(); };
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (S.theme === "auto") applySettings(); });
+
+$("result").addEventListener("click", e => {
+  if (e.target.id !== "chartToggle") return;
+  const d = document.querySelector(".donut");
+  d.classList.toggle("pie");
+  e.target.textContent = d.classList.contains("pie") ? "🍩 Switch to donut chart" : "🥧 Switch to pie chart";
+});
 
 applySettings();
 
