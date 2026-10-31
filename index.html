@@ -112,6 +112,31 @@ body[data-theme="dark"] button.ghost { background: #1b2a26; }
 
 .logo { width: 120px; height: 120px; border-radius: 26px; margin-bottom: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.35); }
 
+#stepNav { display: flex; gap: 6px; overflow-x: auto; padding: 6px; margin: 6px 0; border-radius: 14px; background: rgba(255,255,255,.85); scrollbar-width: none; }
+#stepNav::-webkit-scrollbar { display: none; }
+#stepNav button { flex: 0 0 auto; width: 40px; height: 40px; padding: 0; border-radius: 50%; font-size: 1.15rem; background: #fff; color: #1e2b22; border: 2px solid #c5d3c8; }
+#stepNav button.done { border-color: var(--accent, #1f5a36); }
+#stepNav button.on { background: var(--accent, #1f5a36); border-color: var(--accent, #1f5a36); box-shadow: 0 0 0 3px #ffb020; }
+#stepLabel { display: inline-block; background: rgba(255,255,255,.85); padding: 2px 10px; border-radius: 10px; }
+body[data-theme="dark"] #stepNav, body[data-theme="dark"] #stepLabel { background: rgba(16,24,26,.85); }
+body[data-theme="dark"] #stepNav button { background: #1b2a26; }
+
+/* ---------- Interactive buttons ---------- */
+button { transition: transform .15s ease, box-shadow .15s ease, filter .15s ease; }
+
+@media (hover: hover) {
+  button:hover { transform: translateY(-2px) scale(1.05); box-shadow: 0 6px 14px rgba(0,0,0,.25); }
+  #gear:hover { transform: rotate(60deg) scale(1.1); }
+  #settings .swatch:hover { transform: scale(1.25); }
+  input:hover, select:hover { border-color: var(--accent, #1f5a36); }
+}
+
+button:active { transform: scale(.95); box-shadow: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  button:hover, button:active { transform: none; }
+}
+
 </style>
 </head>
 <body>
@@ -156,6 +181,7 @@ body[data-theme="dark"] button.ghost { background: #1b2a26; }
 <div id="wizard" style="display:none">
 <div id="progWrap"><div id="prog"></div></div>
 <div id="stepLabel"></div>
+<div id="stepNav" aria-label="Jump to a step"></div>
 
 <fieldset>
   <legend>🏠 About you</legend>
@@ -315,7 +341,7 @@ const C = {
   grid: 0.71,            // kg CO2 per kWh (India grid, check latest CEA figure)
   houseKwh: { low: 170, medium: 270, high: 450 },  // typical monthly kWh, rounded from CLASP/RESIDE 2018-19, Jaipur study, Prayas
   dieselBus: 0.03,      // kg per passenger-km
-  ebusKwhPerKm: 1.84, ebusPassengers: 50,
+  ebusKwhPerKm: 1.2, ebusPassengers: 50,
   metroKwhPerTrainKm: 21.4, metroPassengers: 1400,
   lpgCylinderKg: 14.2, lpgFactor: 3.16,
   pngPerScm: 2.05,   // kg CO2 per SCM of PNG
@@ -602,6 +628,7 @@ function go(n) {
   $("stepLabel").textContent = `Step ${cur + 1} of ${steps.length}`;
   $("back").style.visibility = cur ? "visible" : "hidden";
   $("next").textContent = cur === steps.length - 1 ? "See my footprint" : "Next →";
+    markNav();
 }
 $("next").onclick = () => cur === steps.length - 1 ? showResult() : go(cur + 1);
 $("back").onclick = () => go(cur - 1);
@@ -669,7 +696,7 @@ function toggleSettings(open) {
 
 $("gear").onclick = () => toggleSettings($("settings").style.display === "none");
 document.addEventListener("keydown", e => { if (e.key === "Escape") toggleSettings(false); });
-document.addEventListener("click", e => {
+document.addEventListener("click", e => { 
   if (!e.target.closest("#settings") && !e.target.closest("#gear")) toggleSettings(false);
 });
 
@@ -695,9 +722,38 @@ $("result").addEventListener("click", e => {
 
 applySettings();
 
+let maxSeen = 0;
+
+function buildNav() {
+  $("stepNav").innerHTML = steps.map((s, i) => {
+    const legend = s.querySelector("legend").textContent.trim();
+    const icon = legend.split(" ")[0];
+    const name = legend.slice(icon.length).trim();
+    return `<button type="button" data-step="${i}" title="${name}" aria-label="Step ${i + 1}: ${name}">${icon}</button>`;
+  }).join("");
+}
+
+function markNav() {
+  maxSeen = Math.max(maxSeen, cur);
+  document.querySelectorAll("#stepNav button").forEach((b, i) => {
+    b.classList.toggle("on", i === cur);
+    b.classList.toggle("done", i !== cur && i <= maxSeen);
+    if (i === cur) { b.setAttribute("aria-current", "step"); b.scrollIntoView({ inline: "center", block: "nearest" }); }
+    else b.removeAttribute("aria-current");
+  });
+}
+
+$("stepNav").addEventListener("click", e => {
+  const b = e.target.closest("button");
+  if (b) go(+b.dataset.step);
+});
+
+buildNav();
+
 fillSizes();
 updateForm();
 go(0);
+
 </script>
 </body>
 </html>
