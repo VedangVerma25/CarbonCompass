@@ -146,6 +146,21 @@ body.customcard .donut::after { background: var(--card-bg); color: var(--card-fg
 body.cardsdark legend, body.cardsdark .donut::after { color: color-mix(in srgb, var(--accent) 35%, #fff); }
 body.cardsdark .card [style*="1f5a36"] { color: color-mix(in srgb, var(--accent) 35%, #fff) !important; }
 
+#loader { position: fixed; inset: 0; z-index: 45; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: #fff; text-align: center; opacity: 0; transition: opacity .3s;
+  background: linear-gradient(rgba(15,40,25,.7), rgba(15,40,25,.7)), url('Images/Img1.jpg') center / cover no-repeat; }
+#loader.show { opacity: 1; }
+#loader.leaving { transition: opacity .5s ease-in; }
+#loader .compass { width: min(72vw, 340px); height: auto; will-change: transform, opacity; }
+#loader.show .compass { animation: comeAtYou 1.2s cubic-bezier(.2,.9,.25,1) both; }
+#loader.leaving .compass { animation: flyPast .5s ease-in both; }
+#loader .needle { transform-box: fill-box; transform-origin: center; animation: needleSpin 1.4s ease-in-out infinite; }
+@keyframes comeAtYou { from { transform: scale(.08); opacity: 0; } 60% { opacity: 1; } to { transform: scale(1); opacity: 1; } }
+@keyframes flyPast { to { transform: scale(3.4); opacity: 0; } }
+@keyframes needleSpin { to { transform: rotate(360deg); } }
+@keyframes riseIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+#live.enter, #wizard.enter { animation: riseIn .5s ease both; }
+@media (prefers-reduced-motion: reduce) { #loader .compass, #loader .needle, #live.enter, #wizard.enter { animation: none !important; } }
+body.calm #loader .compass, body.calm #loader .needle, body.calm #live.enter, body.calm #wizard.enter { animation: none !important; }
 </style>
 </head>
 <body>
@@ -198,6 +213,35 @@ body.cardsdark .card [style*="1f5a36"] { color: color-mix(in srgb, var(--accent)
   <p>Find out your yearly CO₂ footprint in a few quick steps.</p>
   <button id="start">Start calculator</button>
   <button id="histBtn" class="ghost" style="margin-top:12px">View history</button>
+</div>
+
+<div id="loader" style="display:none">
+  <svg class="compass" viewBox="0 0 200 200" aria-hidden="true">
+    <defs>
+      <clipPath id="globeClip"><circle cx="100" cy="100" r="49"/></clipPath>
+      <linearGradient id="leafG" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#2f7d32"/><stop offset="1" stop-color="#6cc04a"/></linearGradient>
+    </defs>
+    <g fill="#1f6b35">
+      <polygon points="100,6 113,42 87,42"/><polygon points="100,194 113,158 87,158"/>
+      <polygon points="6,100 42,87 42,113"/><polygon points="194,100 158,87 158,113"/>
+    </g>
+    <circle cx="100" cy="100" r="64" fill="#1f6b35"/>
+    <circle cx="100" cy="100" r="53" fill="#fff"/>
+    <circle cx="100" cy="100" r="49" fill="#e6f2df"/>
+    <g clip-path="url(#globeClip)" fill="#5aa83f">
+      <path d="M62 70c10-12 26-14 34-6s-2 16-8 22-18 4-24 14-14-16-2-30z"/>
+      <path d="M108 118c10-6 26-4 32 6s-2 24-14 28-22-8-24-18 0-12 6-16z"/>
+      <path d="M118 66c8-8 22-8 28 0s-2 12-10 14-18 2-18-14z"/>
+    </g>
+    <path d="M122 160C126 122 150 98 180 92 178 132 160 158 122 160Z" fill="url(#leafG)" stroke="#fff" stroke-width="3"/>
+    <path d="M128 154C142 128 156 112 172 100" stroke="#fff" stroke-width="2" fill="none" opacity=".7"/>
+    <g class="needle">
+      <polygon points="100,50 109,100 91,100" fill="#ffb020"/>
+      <polygon points="100,150 109,100 91,100" fill="#1f6b35"/>
+      <circle cx="100" cy="100" r="5.5" fill="#fff"/>
+    </g>
+  </svg>
+  <p>Getting your calculator ready…</p>
 </div>
 
 <div id="live" style="display:none"><span>Your footprint so far</span><strong id="liveVal">0.00 t / year</strong></div>
@@ -362,7 +406,7 @@ body.cardsdark .card [style*="1f5a36"] { color: color-mix(in srgb, var(--accent)
 <div id="history" style="display:none"></div>
 
 <script>
-// ---- Editable numbers: change these when you find better sources ----
+// ---- Editable numbers ----
 const C = {
   grid: 0.71,            // kg CO2 per kWh (India grid, check latest CEA figure)
   houseKwh: { low: 170, medium: 270, high: 450 },  // typical monthly kWh, rounded from CLASP/RESIDE 2018-19, Jaipur study, Prayas
@@ -373,8 +417,8 @@ const C = {
   pngPerScm: 2.05,   // kg CO2 per SCM of PNG
   cngCo2PerKg: 2.75,       // kg CO2 per kg of CNG
   cngHatchKmPerKg: 26,     // real-world km per kg, hatchback
-  cngSedanKmPerKg: 24,     // real-world km per kg, sedan / compact SUV
-  cngBusKmPerKg: 2.25,     // DTC CNG buses: about 2.5 non-AC, about 2.0 AC
+  cngSedanKmPerKg: 24,     // real-world km per kg, sedan / compact SUV/ ARAI
+  cngBusKmPerKg: 2.25,     // DTC CNG buses: about 2.5 non-AC, about 2.0 AC/ ARAI
   ev2wKwhPerKm: 0.035, 
   evCarKwhPerKm: 0.12,   // kWh per km
   dietVeg: 2.9, dietMeat: 4.2,      // kg CO2e per day
@@ -640,7 +684,6 @@ function updateForm() {
   show("acExtra", num("acs") > 0);
   show("lpgBox", $("fuel").value === "lpg");
   show("pngBox", $("fuel").value === "png");
-  show("houseBox", $("bill").value.trim() === "");
   show("meatBox", $("diet").value === "meat");
   show("meatNote", $("diet").value === "meat" && $("meatmeals").value.trim() !== "" && num("meatmeals") === 0);
   show("subDaysBox", num("subkm") > 0);
@@ -675,9 +718,21 @@ document.addEventListener("input", updateForm);
 document.addEventListener("change", updateForm);
 
 $("start").onclick = () => {
-  $("welcome").style.display = "none";
-  $("live").style.display = "flex";
-  $("wizard").style.display = "block";
+  const loader = $("loader");
+  const delay = document.body.classList.contains("calm") ? 0 : 1800;
+  loader.style.display = "flex";
+  loader.querySelector(".compass").style.willChange = "transform, opacity";
+  requestAnimationFrame(() => loader.classList.add("show"));
+  setTimeout(() => {
+    $("welcome").style.display = "none";
+    $("live").style.display = "flex";
+    $("wizard").style.display = "block";
+    $("live").classList.add("enter");
+    $("wizard").classList.add("enter");
+    loader.classList.add("leaving");
+    loader.classList.remove("show");
+    setTimeout(() => { loader.style.display = "none"; loader.classList.remove("leaving"); }, 520);
+  }, delay);
 };
 
 $("vsize").addEventListener("change", updateMaxPeople);
