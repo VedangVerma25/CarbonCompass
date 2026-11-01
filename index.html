@@ -805,6 +805,10 @@ $("stepNav").addEventListener("click", e => {
 
 buildNav();
 
+window.addEventListener("load", () => {
+  for (let i = 2; i <= 10; i++) new Image().src = `Images/Img${i}.jpg`;
+});
+
 fillSizes();
 updateForm();
 go(0);
