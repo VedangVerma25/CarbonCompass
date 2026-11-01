@@ -228,8 +228,10 @@ body.cardsdark .card [style*="1f5a36"] { color: color-mix(in srgb, var(--accent)
   <select id="vtype" onchange="fillSizes()">
     <option value="" selected disabled>Select vehicle type</option>
     <option value="p2w">Petrol 2-wheeler</option>
+    <option value="e2w">Electric 2-wheeler</option>
     <option value="pcar">Petrol car</option>
     <option value="dcar">Diesel car</option>
+    <option value="ecar">Electric car</option>
     <option value="ccar">CNG car</option>
     <option value="none">I don't use one</option>
   </select>
@@ -373,6 +375,8 @@ const C = {
   cngHatchKmPerKg: 26,     // real-world km per kg, hatchback
   cngSedanKmPerKg: 24,     // real-world km per kg, sedan / compact SUV
   cngBusKmPerKg: 2.25,     // DTC CNG buses: about 2.5 non-AC, about 2.0 AC
+  ev2wKwhPerKm: 0.035, 
+  evCarKwhPerKm: 0.12,   // kWh per km
   dietVeg: 2.9, dietMeat: 4.2,      // kg CO2e per day
   flightDomestic: 0.16, flightIntl: 0.12,  // kg per passenger-km
   trainSuburban: 0.007976, trainLong: 0.007837,  // kg per passenger-km (Indian Railways average)
@@ -384,7 +388,9 @@ const VEHICLES = {
   p2w: { "Upto 110cc": 0.06, "111-150cc": 0.06, "151-250cc": 0.8, "251cc and above": 0.11 },
   pcar: { "Hatchback": 0.13, "Sedan or compact SUV": 0.18, "MUV": 0.23, "Large SUV": 0.27 },
   dcar: { "Hatchback or compact": 0.14, "Sedan or compact SUV": 0.16, "Large SUV or MUV": 0.19 },
-  ccar: { "Hatchback": C.cngCo2PerKg / C.cngHatchKmPerKg, "Sedan or compact SUV": C.cngCo2PerKg / C.cngSedanKmPerKg }
+  ccar: { "Hatchback": C.cngCo2PerKg / C.cngHatchKmPerKg, "Sedan or compact SUV": C.cngCo2PerKg / C.cngSedanKmPerKg },
+  e2w: { "Standard": C.ev2wKwhPerKm * C.grid },
+  ecar: { "Standard": C.evCarKwhPerKm * C.grid },
 };
 
 const TIPS = {
@@ -407,7 +413,7 @@ function updateMaxPeople() {
   const type = $("vtype").value;
   const size = $("vsize").selectedOptions[0]?.text || "";
   let max = 5;                                   // hatchback, sedan, compact SUV
-  if (type === "p2w") max = 2;                   // 2-wheelers
+  if (type === "p2w" || type === "e2w") max = 2;                  // 2-wheelers
   else if (/Large SUV/.test(size)) max = 8;      // large SUV
   else if (/MUV/.test(size)) max = 7;            // mid SUV or MUV
   $("vpeople").max = max;
@@ -628,7 +634,7 @@ function show(id, visible) {
 }
 
 function updateForm() {
-  show("vehicleExtra", ["p2w", "pcar", "dcar", "ccar"].includes($("vtype").value));
+  show("vehicleExtra", ["p2w", "pcar", "dcar", "ccar", "e2w", "ecar"].includes($("vtype").value));
   show("busExtra", num("buskm") > 0);
   show("daysBox", num("metrokm") > 0 || num("buskm") > 0);
   show("acExtra", num("acs") > 0);
@@ -783,7 +789,11 @@ function markNav() {
   document.querySelectorAll("#stepNav button").forEach((b, i) => {
     b.classList.toggle("on", i === cur);
     b.classList.toggle("done", i !== cur && i <= maxSeen);
-    if (i === cur) { b.setAttribute("aria-current", "step"); b.scrollIntoView({ inline: "center", block: "nearest" }); }
+        if (i === cur) {
+      b.setAttribute("aria-current", "step");
+      const row = b.parentElement;
+      row.scrollLeft = b.offsetLeft - row.clientWidth / 2 + b.offsetWidth / 2;
+    }
     else b.removeAttribute("aria-current");
   });
 }
