@@ -161,6 +161,19 @@ body.cardsdark .card [style*="1f5a36"] { color: color-mix(in srgb, var(--accent)
 #live.enter, #wizard.enter { animation: riseIn .5s ease both; }
 @media (prefers-reduced-motion: reduce) { #loader .compass, #loader .needle, #live.enter, #wizard.enter { animation: none !important; } }
 body.calm #loader .compass, body.calm #loader .needle, body.calm #live.enter, body.calm #wizard.enter { animation: none !important; }
+
+fieldset, #result .card { transition: transform .25s ease-out; }
+.tilt { transition: transform .08s ease-out !important; }
+
+#calc { position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: rgba(16,26,22,.93); color: #fff; opacity: 0; transition: opacity .3s; }
+#calc.show { opacity: 1; }
+.calcRing { width: 84px; height: 84px; border-radius: 50%; border: 6px solid rgba(255,255,255,.15); border-top-color: #ffb020; animation: ringSpin .9s linear infinite; }
+#calcNum { font-family: ui-monospace, Consolas, monospace; font-size: 2.6rem; color: #ffb020; letter-spacing: 2px; }
+.calcTrack { width: min(70vw, 320px); height: 8px; border-radius: 4px; background: rgba(255,255,255,.15); overflow: hidden; }
+#calcBar { height: 100%; width: 0; background: #ffb020; transition: width 2.4s linear; }
+@keyframes ringSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .calcRing { animation: none; } }
+
 </style>
 </head>
 <body>
@@ -244,6 +257,13 @@ body.calm #loader .compass, body.calm #loader .needle, body.calm #live.enter, bo
   <p>Getting your calculator ready…</p>
 </div>
 
+<div id="calc" style="display:none">
+  <div class="calcRing"></div>
+  <div id="calcNum">0.00</div>
+  <p id="calcMsg">Crunching the numbers…</p>
+  <div class="calcTrack"><div id="calcBar"></div></div>
+</div>
+
 <div id="live" style="display:none"><span>Your footprint so far</span><strong id="liveVal">0.00 t / year</strong></div>
 
 <div id="wizard" style="display:none">
@@ -254,7 +274,7 @@ body.calm #loader .compass, body.calm #loader .needle, body.calm #live.enter, bo
 <fieldset>
   <legend>🏠 About you</legend>
   <label for="family">People in your household</label>
-  <input type="number" id="family" placeholder="How many people are in your house? e.g. 4" min="1" max="40">
+  <input type="number" id="family" placeholder="Number of people in your house e.g. 4" min="1" max="40">
   <div id="houseBox">
     <label for="house">What is your home size?</label>
     <select id="house">
@@ -320,7 +340,7 @@ body.calm #loader .compass, body.calm #loader .needle, body.calm #live.enter, bo
 <fieldset>
   <legend>❄️ Air conditioning</legend>
   <label for="acs">Number of ACs</label>
-  <input type="number" id="acs" placeholder="e.g. 2" min="0">
+  <input type="number" id="acs" placeholder="e.g. 2" min="0" max="15">
   <div id="acExtra">
     <label for="actons">Size</label>
     <select id="actons">
@@ -458,7 +478,7 @@ function updateMaxPeople() {
   const size = $("vsize").selectedOptions[0]?.text || "";
   let max = 5;                                   // hatchback, sedan, compact SUV
   if (type === "p2w" || type === "e2w") max = 2;                  // 2-wheelers
-  else if (/Large SUV/.test(size)) max = 8;      // large SUV
+  else if (/Large SUV/.test(size)) max = 7;      // large SUV
   else if (/MUV/.test(size)) max = 7;            // mid SUV or MUV
   $("vpeople").max = max;
   $("vpeople").placeholder = `1 to ${max}`;
@@ -607,6 +627,32 @@ function showHistory(from) {
   window.scrollTo(0, 0);
 }
 
+let calcBusy = false;
+function calculating() {
+  if (calcBusy) return;
+  const calm = document.body.classList.contains("calm") || matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (calm) { showResult(); return; }
+  calcBusy = true;
+  const box = $("calc"), msg = $("calcMsg"), bar = $("calcBar");
+  const lines = ["Adding up your travel…", "Measuring your home energy…", "Weighing your meals…", "Counting flights and trains…", "Crunching the numbers…"];
+  const total = 2400;
+  msg.textContent = lines[0];
+  bar.style.transition = "none"; bar.style.width = "0";
+  box.style.display = "flex";
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    box.classList.add("show");
+    bar.style.transition = ""; bar.style.width = "100%";
+  }));
+  lines.forEach((t, i) => setTimeout(() => { msg.textContent = t; }, i * (total / lines.length)));
+  const ticker = setInterval(() => { $("calcNum").textContent = (Math.random() * 9).toFixed(2); }, 70);
+  setTimeout(() => {
+    clearInterval(ticker);
+    showResult();
+    box.classList.remove("show");
+    setTimeout(() => { box.style.display = "none"; calcBusy = false; }, 320);
+  }, total);
+}
+
 function showResult() {
   const { parts, total, share, acIncluded } = compute();
   const tonnes = total / 1000;
@@ -679,6 +725,9 @@ function show(id, visible) {
 
 function updateForm() {
   show("vehicleExtra", ["p2w", "pcar", "dcar", "ccar", "e2w", "ecar"].includes($("vtype").value));
+    const evType = ["e2w", "ecar"].includes($("vtype").value);
+  show("vsize", !evType);
+  document.querySelector('label[for="vsize"]').style.display = evType ? "none" : "";
   show("busExtra", num("buskm") > 0);
   show("daysBox", num("metrokm") > 0 || num("buskm") > 0);
   show("acExtra", num("acs") > 0);
@@ -703,7 +752,7 @@ function go(n) {
   $("next").textContent = cur === steps.length - 1 ? "See my footprint" : "Next →";
     markNav();
 }
-$("next").onclick = () => cur === steps.length - 1 ? showResult() : go(cur + 1);
+$("next").onclick = () => cur === steps.length - 1 ? calculating() : go(cur + 1);
 $("back").onclick = () => go(cur - 1);
 
 document.addEventListener("input", e => {
@@ -864,10 +913,38 @@ window.addEventListener("load", () => {
   for (let i = 2; i <= 10; i++) new Image().src = `Images/Img${i}.jpg`;
 });
 
+// MAXES (Maximum value caps)
+const MAXES = { vkm: 500, metrokm: 200, buskm: 300, subkm: 250, bill: 5000, acs: 15, cyl: 36, scm: 200, dtrips: 100, dkm: 3500, itrips: 50, ltrips: 100, lkm: 4300 };
+Object.entries(MAXES).forEach(([id, m]) => $(id).max = m);
+
+// Card tilt (mouse devices only, skipped if Animations are off)
+if (matchMedia("(hover: hover) and (prefers-reduced-motion: no-preference)").matches) {
+  let raf = 0, mx = 0, my = 0;
+  const resetTilt = () => document.querySelectorAll(".tilt").forEach(c => { c.classList.remove("tilt"); c.style.transform = ""; });
+
+  document.addEventListener("mousemove", e => {
+    if (document.body.classList.contains("calm")) { resetTilt(); return; }
+    mx = e.clientX; my = e.clientY;
+    if (raf) return;
+    raf = requestAnimationFrame(() => {
+      raf = 0;
+      const card = document.elementFromPoint(mx, my)?.closest("fieldset.active, #result .card");
+      document.querySelectorAll(".tilt").forEach(c => { if (c !== card) { c.classList.remove("tilt"); c.style.transform = ""; } });
+      if (card) {
+        const r = card.getBoundingClientRect();
+        const x = (mx - r.left) / r.width - .5, y = (my - r.top) / r.height - .5;
+        card.classList.add("tilt");
+        card.style.transform = `perspective(900px) rotateX(${(-y * 4).toFixed(2)}deg) rotateY(${(x * 5).toFixed(2)}deg)`;
+      }
+    });
+  });
+  document.documentElement.addEventListener("mouseleave", resetTilt);
+}
+
 fillSizes();
 updateForm();
 go(0);
 
 </script>
 </body>
-</html>
+</html> 
