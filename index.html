@@ -213,6 +213,22 @@ body[data-theme="dark"] #settings::before { background: url('Images/settings-dar
 /* -- "Your History" text */
 #history h2 { color: #fff !important; font-size: 2rem; text-shadow: 0 2px 10px rgba(0,0,0,.8); }
 
+@media (max-width: 600px) {
+  #settings { background: #ffffff; padding: 76px 18px 28px; }
+  #settings::before { opacity: .8; }
+  body[data-theme="dark"] #settings { background: #101a17; }
+  body[data-theme="dark"] #settings::before { opacity: .8; }
+}
+
+/* Toggle switches instead of tick boxes */
+input[type=checkbox] { -webkit-appearance: none; appearance: none; position: relative; flex: none; width: 46px; height: 26px; max-width: none; padding: 0; margin: 0 12px 0 0; vertical-align: middle; border: 0; border-radius: 13px; background: #b7c4bb; cursor: pointer; transition: background .2s; }
+input[type=checkbox]::before { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.35); transition: transform .2s; }
+input[type=checkbox]:checked { background: var(--accent, #1f5a36); }
+input[type=checkbox]:checked::before { transform: translateX(20px); }
+label:has(> input[type=checkbox]) { display: flex; align-items: center; }
+body[data-theme="dark"] input[type=checkbox]:not(:checked) { background: #3a5248; }
+body.calm input[type=checkbox], body.calm input[type=checkbox]::before { transition: none; }
+
 </style>
 </head>
 <body>
@@ -262,10 +278,10 @@ body[data-theme="dark"] #settings::before { background: url('Images/settings-dar
 </div>
 
 <div id="welcome">
-  <p class="slogan">Guiding you towards a sustainable future</p>
+  <p class="slogan">Guiding towards a sustainable future</p>
   <img src="Images/logo.png" alt="Carbon Compass logo" class="logo">
   <h1>Carbon Compass</h1>
-  <p>Find out your yearly CO₂ footprint in a few quick steps.</p>
+  <p>Find out your CO₂ footprint in a few quick steps.</p>
   <button id="start">Start calculator</button>
   <button id="histBtn" class="ghost" style="margin-top:12px">View history</button>
 </div>
@@ -443,7 +459,7 @@ body[data-theme="dark"] #settings::before { background: url('Images/settings-dar
   <label for="itrips">International return trips per year</label>
   <input type="number" id="itrips" placeholder="e.g. 1" min="0">
   <label for="ikm">Average one-way distance (km)</label>
-  <input type="number" id="ikm" placeholder="e.g. 5000" min="0" max="15349">
+  <input type="number" id="ikm" placeholder="e.g. 5000" min="0" max="25000">
 </fieldset>
 
 <fieldset>
@@ -1011,7 +1027,7 @@ window.addEventListener("load", () => {
 });
 
 // MAXES (Maximum value caps)
-const MAXES = { vkm: 500, metrokm: 200, buskm: 300, subkm: 250, bill: 5000, acs: 15, cyl: 36, scm: 200, dtrips: 100, dkm: 3500, itrips: 50, ltrips: 100, lkm: 4300, water: 20 };
+const MAXES = { vkm: 500, metrokm: 200, buskm: 500, subkm: 500, bill: 20000, acs: 50, cyl: 36, scm: 1000, dtrips: 100, dkm: 20000, itrips: 100, ltrips: 50, lkm: 25000, water: 20 };
 Object.entries(MAXES).forEach(([id, m]) => $(id).max = m);
 
 // Card tilt (mouse devices only, skipped if Animations are off)
