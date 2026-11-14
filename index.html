@@ -261,6 +261,8 @@ body[data-theme="dark"] .contactRow { background: rgba(27,42,38,.9); color: #e6e
 .contactBtn:hover, .contactBtn:focus, .contactBtn:active { background: #fff !important; color: var(--accent-text, #1f5a36) !important; outline: none; }
 body[data-theme="dark"] .contactBtn:hover, body[data-theme="dark"] .contactBtn:focus, body[data-theme="dark"] .contactBtn:active { background: #1b2a26 !important; color: #e6efe8 !important; }
 
+a.contactBtn { text-decoration: none; }
+
 </style>
 </head>
 <body>
@@ -307,11 +309,12 @@ body[data-theme="dark"] .contactBtn:hover, body[data-theme="dark"] .contactBtn:f
   <label><input type="checkbox" id="optMotion"> Animations</label>
   <label><input type="checkbox" id="optDetails"> Advanced history (tap a saved result to see its breakdown)</label>
   <button class="ghost" id="resetSettings" style="margin-top:10px">Reset settings</button>
- <div class="contactRow">
+<div class="contactRow">
   <span>✉️ Contact us:</span>
   <button type="button" class="contactBtn" data-copy-email>
     info@carboncompassco2.com
   </button>
+  <a class="contactBtn" href="/disclaimer/" target="_blank" rel="noopener">📄 Disclaimer</a>
 </div>
 </div>
 
@@ -845,11 +848,12 @@ const labels = total > 0 ? shown.filter(p => p.kg > 0).map(p => {
 } 
   html += `<div class="hrow"><button id="edit" class="ghost">← Change my answers</button>
   <button id="histBtn2" class="ghost">📜 View history</button></div>`;
-  html += `<div class="contactRow">
+    html += `<div class="contactRow">
   <span>✉️ Contact us:</span>
   <button type="button" class="contactBtn" data-copy-email>
     info@carboncompassco2.com
   </button>
+  <a class="contactBtn" href="/disclaimer/" target="_blank" rel="noopener">📄 Disclaimer</a>
 </div>`;
   $("result").innerHTML = html;
   $("wizard").style.display = "none";
