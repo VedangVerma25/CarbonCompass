@@ -229,13 +229,37 @@ label:has(> input[type=checkbox]) { display: flex; align-items: center; }
 body[data-theme="dark"] input[type=checkbox]:not(:checked) { background: #3a5248; }
 body.calm input[type=checkbox], body.calm input[type=checkbox]::before { transition: none; }
 
-a.contactBtn { display: block; width: fit-content; margin: 16px auto 4px; padding: 12px 24px; border-radius: 10px; background: #fff; color: var(--accent-text, #1f5a36); border: 1.5px solid var(--accent, #1f5a36); font-weight: 600; text-decoration: none; transition: transform .15s ease, box-shadow .15s ease; }
-a.contactBtn:hover { transform: translateY(-2px) scale(1.05); box-shadow: 0 6px 14px rgba(0,0,0,.25); }
-body[data-theme="dark"] a.contactBtn { background: #1b2a26; }
+.contactBtn {
+  display: block;
+  width: fit-content;
+  margin: 16px auto 4px;
+  padding: 12px 24px;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--accent-text, #1f5a36);
+  border: 1.5px solid var(--accent, #1f5a36);
+  font-weight: 600;
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.contactBtn:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 6px 14px rgba(0,0,0,.25);
+}
+
+body[data-theme="dark"] .contactBtn {
+  background: #1b2a26;
+}
 
 .contactRow { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-items: center; margin: 16px 0 4px; padding: 10px; border-radius: 12px; background: rgba(255,255,255,.9); }
 body[data-theme="dark"] .contactRow { background: rgba(27,42,38,.9); color: #e6efe8; }
-.contactRow a.contactBtn { margin: 0; padding: 8px 14px; }
+.contactRow .contactBtn { margin: 0; padding: 8px 14px; }
+
+.contactBtn:hover, .contactBtn:focus, .contactBtn:active { background: #fff !important; color: var(--accent-text, #1f5a36) !important; outline: none; }
+body[data-theme="dark"] .contactBtn:hover, body[data-theme="dark"] .contactBtn:focus, body[data-theme="dark"] .contactBtn:active { background: #1b2a26 !important; color: #e6efe8 !important; }
 
 </style>
 </head>
@@ -283,20 +307,11 @@ body[data-theme="dark"] .contactRow { background: rgba(27,42,38,.9); color: #e6e
   <label><input type="checkbox" id="optMotion"> Animations</label>
   <label><input type="checkbox" id="optDetails"> Advanced history (tap a saved result to see its breakdown)</label>
   <button class="ghost" id="resetSettings" style="margin-top:10px">Reset settings</button>
-  <div class="contactRow">
+ <div class="contactRow">
   <span>✉️ Contact us:</span>
-
-  <a class="contactBtn"
-     target="_blank"
-     rel="noopener"
-     href="https://mail.google.com/mail/?view=cm&to=info%40carboncompassco2.com&su=Carbon%20Compass%20Enquiry">
-     Gmail
-  </a>
-
-  <a class="contactBtn"
-     href="mailto:info@carboncompassco2.com?subject=Carbon%20Compass%20Enquiry">
-     Outlook / Default Mail App
-  </a>
+  <button type="button" class="contactBtn" data-copy-email>
+    info@carboncompassco2.com
+  </button>
 </div>
 </div>
 
@@ -737,7 +752,7 @@ function showHistory(from) {
   html += `<div class="hrow"><button id="hback" class="ghost">← Back</button>
     ${list.length ? `<button id="hclear" class="ghost">Clear all</button>` : ""}</div>`;
   $("history").innerHTML = html;
-    if (S.details) document.querySelectorAll("#history .card").forEach((c, i) => {
+    if (ADVANCED_HISTORY && S.details) document.querySelectorAll("#history .card").forEach((c, i) => {
     const e = list[i];
     if (!e) return;
     if (e.parts) { c.classList.add("hcard"); c.insertAdjacentHTML("beforeend", detailHtml(e)); }
@@ -830,12 +845,12 @@ const labels = total > 0 ? shown.filter(p => p.kg > 0).map(p => {
 } 
   html += `<div class="hrow"><button id="edit" class="ghost">← Change my answers</button>
   <button id="histBtn2" class="ghost">📜 View history</button></div>`;
-  const mail = "info@carboncompassco2.com", q = encodeURIComponent("Carbon Compass feedback");
-  html += `<div class="contactRow"><span>✉️ Contact us:</span>
-  <a class="contactBtn" target="_blank" rel="noopener" href="https://mail.google.com/mail/?view=cm&to=${mail}&su=${q}">Gmail</a>
-  <a class="contactBtn" href="mailto:${mail}?subject=${q}">Outlook / Default Mail App</a>  <a class="contactBtn" href="mailto:${mail}?subject=${q}">Mail app</a>
-  <button type="button" class="ghost small" id="copyMail">Copy address</button></div>`;
-
+  html += `<div class="contactRow">
+  <span>✉️ Contact us:</span>
+  <button type="button" class="contactBtn" data-copy-email>
+    info@carboncompassco2.com
+  </button>
+</div>`;
   $("result").innerHTML = html;
   $("wizard").style.display = "none";
   $("result").style.display = "block";
@@ -940,6 +955,7 @@ $("history").addEventListener("click", e => {
 
 // ---- Settings ----
 const SKEY = "carbonSettings";
+const ADVANCED_HISTORY = false;   // set to false to switch the feature off
 const DEFAULTS = { theme: "light", accent: "#1f5a36", size: "16", photos: true, motion: true, card: "auto", details: false };
 let S = { ...DEFAULTS };
 try { S = { ...DEFAULTS, ...(JSON.parse(localStorage.getItem(SKEY)) || {}) }; } catch {}
@@ -1085,21 +1101,39 @@ $("closeSettings").onclick = () => {
 
 $("optDetails").onchange = e => { S.details = e.target.checked; applySettings(); };
 
-$("result").addEventListener("click", e => {
-  if (e.target.id !== "copyMail") return;
-  const addr = "info@carboncompassco2.com";
-  if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(addr).then(() => { e.target.textContent = "Copied ✓"; }, () => { e.target.textContent = addr; });
-  } else {
-    const t = document.createElement("textarea");
-    t.value = addr; t.style.cssText = "position:fixed;opacity:0";
-    document.body.appendChild(t); t.select();
-    let ok = false;
-    try { ok = document.execCommand("copy"); } catch {}
-    t.remove();
-    e.target.textContent = ok ? "Copied ✓" : addr;
+document.addEventListener("click", async e => {
+  const button = e.target.closest("[data-copy-email]");
+  if (!button) return;
+
+  const email = "info@carboncompassco2.com";
+
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+  await navigator.clipboard.writeText(email);
+} else {
+  const t = document.createElement("textarea");
+  t.value = email; t.style.cssText = "position:fixed;opacity:0";
+  document.body.appendChild(t); t.select();
+  const ok = document.execCommand("copy");
+  t.remove();
+  if (!ok) throw new Error("copy failed");
+}
+    button.textContent = "Copied ✓";
+
+    setTimeout(() => {
+      button.textContent = email;
+    }, 2000);
+
+  } catch {
+    button.textContent = "Copy failed";
+
+    setTimeout(() => {
+      button.textContent = email;
+    }, 2000);
   }
 });
+
+if (!ADVANCED_HISTORY) $("optDetails").closest("label").style.display = "none";
 
 fillSizes();
 updateForm();
